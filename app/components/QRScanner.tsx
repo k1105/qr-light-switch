@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from "react";
 import jsQR from "jsqr";
+import QRCode from "qrcode";
 
 type LightState = "on" | "off";
 
@@ -13,21 +14,30 @@ export default function QRScanner() {
   const cooldownRef = useRef(false);
 
   const [lightState, setLightState] = useState<LightState>("off");
-  const [status, setStatus] = useState("カメラを起動中...");
   const [error, setError] = useState<string | null>(null);
-  const [flash, setFlash] = useState(false);
-  const [torchSupported, setTorchSupported] = useState(true);
+  const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+
+  // Generate QR code data URL whenever lightState changes
+  useEffect(() => {
+    QRCode.toDataURL(lightState === "on" ? "ON" : "OFF", {
+      width: 256,
+      margin: 2,
+      color: {
+        dark: "#000000",
+        light: "#ffffff",
+      },
+    }).then(setQrDataUrl);
+  }, [lightState]);
 
   const applyTorch = useCallback(async (on: boolean) => {
     const track = trackRef.current;
     if (!track) return;
-
     try {
       await track.applyConstraints({
         advanced: [{ torch: on } as MediaTrackConstraintSet],
       });
     } catch {
-      setTorchSupported(false);
+      // torch not supported
     }
   }, []);
 
@@ -49,16 +59,7 @@ export default function QRScanner() {
 
         applyTorch(wantOn);
 
-        setFlash(true);
-        setTimeout(() => setFlash(false), 250);
-
-        const next: LightState = wantOn ? "on" : "off";
-        setStatus(
-          wantOn
-            ? 'ライト点灯中 - "OFF" で消灯'
-            : 'ライト消灯中 - "ON" で点灯'
-        );
-        return next;
+        return wantOn ? "on" : "off";
       });
     },
     [applyTorch]
@@ -121,12 +122,9 @@ export default function QRScanner() {
         trackRef.current = stream.getVideoTracks()[0];
 
         await video.play();
-        setStatus("QRコードをスキャンしてください");
         startScanning(video);
       } catch {
-        setError(
-          "カメラへのアクセスが拒否されました。ブラウザの設定からカメラの許可を有効にしてください。"
-        );
+        setError("カメラへのアクセスが拒否されました。");
       }
     };
 
@@ -140,96 +138,24 @@ export default function QRScanner() {
     };
   }, [startScanning]);
 
-  const isOn = lightState === "on";
-
   return (
-    <div className="flex flex-col h-[100dvh] bg-[#111] text-white overflow-hidden">
-      {/* Status bar */}
-      <div className="flex items-center justify-between px-4 py-3 bg-[#1a1a1a] z-10">
-        <span
-          className={`text-lg font-bold transition-colors duration-300 ${
-            isOn ? "text-yellow-400" : "text-gray-500"
-          }`}
-        >
-          {isOn ? "ON" : "OFF"}
-        </span>
-        <div className="flex items-center gap-2">
-          {!torchSupported && (
-            <span className="text-xs text-gray-500">
-              Torch N/A
-            </span>
-          )}
-          <div
-            className={`w-3.5 h-3.5 rounded-full transition-all duration-300 ${
-              isOn
-                ? "bg-yellow-400 shadow-[0_0_10px_theme(colors.yellow.400),0_0_20px_rgba(250,204,21,0.4)]"
-                : "bg-gray-600"
-            }`}
-          />
-        </div>
-      </div>
-
-      {/* Camera view */}
-      <div className="flex-1 relative overflow-hidden">
+    <div id="app">
+      <div id="qr-display">
         {error ? (
-          <div className="flex items-center justify-center h-full p-8 text-center">
-            <p className="text-gray-400 text-[15px] leading-relaxed">
-              {error}
-            </p>
-          </div>
+          <p id="error">{error}</p>
         ) : (
           <>
-            <video
-              ref={videoRef}
-              autoPlay
-              playsInline
-              muted
-              className="w-full h-full object-cover"
-            />
-
-            {/* Scan overlay */}
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="w-[220px] h-[220px] border-2 border-white/40 rounded-2xl relative">
-                {/* Corner accents */}
-                <div className="absolute -top-px -left-px w-[30px] h-[30px] border-t-[3px] border-l-[3px] border-white rounded-tl-xl" />
-                <div className="absolute -top-px -right-px w-[30px] h-[30px] border-t-[3px] border-r-[3px] border-white rounded-tr-xl" />
-                <div className="absolute -bottom-px -left-px w-[30px] h-[30px] border-b-[3px] border-l-[3px] border-white rounded-bl-xl" />
-                <div className="absolute -bottom-px -right-px w-[30px] h-[30px] border-b-[3px] border-r-[3px] border-white rounded-br-xl" />
-
-                {/* Scan line */}
-                <div
-                  className="absolute left-[10px] right-[10px] h-0.5 bg-yellow-400/70"
-                  style={{
-                    animation: "scanLine 2s ease-in-out infinite",
-                  }}
-                />
-              </div>
-            </div>
+            <p id="state-label">{lightState.toUpperCase()}</p>
+            {qrDataUrl && (
+              <img id="qr-image" src={qrDataUrl} alt={`QR: ${lightState}`} />
+            )}
           </>
         )}
       </div>
 
-      {/* Message bar */}
-      <div className="px-4 py-3.5 text-center text-sm text-gray-400 bg-[#1a1a1a]">
-        {error ? "エラーが発生しました" : status}
-      </div>
-
-      {/* Flash feedback */}
-      <div
-        className={`fixed inset-0 bg-yellow-400/15 pointer-events-none z-50 transition-opacity duration-150 ${
-          flash ? "opacity-100" : "opacity-0"
-        }`}
-      />
-
-      {/* Hidden canvas for QR scanning */}
-      <canvas ref={canvasRef} className="hidden" />
-
-      <style jsx>{`
-        @keyframes scanLine {
-          0%, 100% { top: 10px; }
-          50% { top: calc(100% - 12px); }
-        }
-      `}</style>
+      {/* Hidden elements for camera scanning */}
+      <video ref={videoRef} autoPlay playsInline muted style={{ display: "none" }} />
+      <canvas ref={canvasRef} style={{ display: "none" }} />
     </div>
   );
 }
