@@ -3,18 +3,23 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import jsQR from "jsqr";
 import QRCode from "qrcode";
+import { getUserId } from "../lib/userId";
+import { registerNode } from "../lib/relay";
 
 type LightState = "on" | "off";
 
 const APP_ORIGIN = "https://qr-light-switch.vercel.app";
 
-function parseStateFromUrl(value: string): LightState | null {
+function parseStateFromUrl(
+  value: string
+): { state: LightState; parentId: string | null } | null {
   try {
     const url = new URL(value);
     if (!url.origin.includes("qr-light-switch")) return null;
     const state = url.searchParams.get("state");
-    if (state === "on" || state === "off") return state;
-    return null;
+    if (state !== "on" && state !== "off") return null;
+    const parentId = url.searchParams.get("parent");
+    return { state, parentId };
   } catch {
     return null;
   }
@@ -39,9 +44,24 @@ export default function QRScanner() {
   const [error, setError] = useState<string | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
 
-  // Generate QR code as URL with state param
+  const myId = useRef("");
   useEffect(() => {
-    const qrValue = `${APP_ORIGIN}/?state=${lightState}`;
+    myId.current = getUserId();
+    // Register self as root node if arrived without parent
+    const params = new URLSearchParams(window.location.search);
+    const parentId = params.get("parent");
+    if (myId.current) {
+      registerNode(myId.current, parentId);
+      if (parentId) {
+        registerNode(parentId, null);
+      }
+    }
+  }, []);
+
+  // Generate QR code as URL with state param + parent
+  useEffect(() => {
+    const id = myId.current || getUserId();
+    const qrValue = `${APP_ORIGIN}/?parent=${id}&state=${lightState}`;
     QRCode.toDataURL(qrValue, {
       width: 256,
       margin: 2,
@@ -66,9 +86,17 @@ export default function QRScanner() {
 
   const handleQRValue = useCallback(
     async (value: string) => {
-      const targetState = parseStateFromUrl(value.trim());
-      if (!targetState) return;
+      const parsed = parseStateFromUrl(value.trim());
+      if (!parsed) return;
       if (cooldownRef.current) return;
+
+      const { state: targetState, parentId } = parsed;
+
+      // Register relay: scanned QR means parentId created this QR
+      if (myId.current && parentId) {
+        registerNode(myId.current, parentId);
+        registerNode(parentId, null);
+      }
 
       const wantOn = targetState === "on";
 
