@@ -22,21 +22,23 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: center;
-  align-items: center;
+  align-items: stretch;
   overflow: hidden;
 }
 
 #state-label {
   font-size: 24px;
   font-weight: bold;
+  text-align: center;
   margin-bottom: 8px;
 }
 
 #qr-image {
   width: 100%;
-  height: auto;
-  max-height: calc(50dvh - 40px);
+  flex: 1;
+  min-height: 0;
   object-fit: contain;
+  image-rendering: pixelated;
 }
 
 #camera-display {
