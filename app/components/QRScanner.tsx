@@ -6,6 +6,20 @@ import QRCode from "qrcode";
 
 type LightState = "on" | "off";
 
+const APP_ORIGIN = "https://qr-light-switch.vercel.app";
+
+function parseStateFromUrl(value: string): LightState | null {
+  try {
+    const url = new URL(value);
+    if (!url.origin.includes("qr-light-switch")) return null;
+    const state = url.searchParams.get("state");
+    if (state === "on" || state === "off") return state;
+    return null;
+  } catch {
+    return null;
+  }
+}
+
 export default function QRScanner() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -13,13 +27,22 @@ export default function QRScanner() {
   const scanningRef = useRef(false);
   const cooldownRef = useRef(false);
 
-  const [lightState, setLightState] = useState<LightState>("off");
+  // Read initial state from URL search params
+  const [lightState, setLightState] = useState<LightState>(() => {
+    if (typeof window !== "undefined") {
+      const params = new URLSearchParams(window.location.search);
+      const state = params.get("state");
+      if (state === "on" || state === "off") return state;
+    }
+    return "off";
+  });
   const [error, setError] = useState<string | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
 
-  // Generate QR code data URL whenever lightState changes
+  // Generate QR code as URL with state param
   useEffect(() => {
-    QRCode.toDataURL(lightState === "on" ? "ON" : "OFF", {
+    const qrValue = `${APP_ORIGIN}/?state=${lightState}`;
+    QRCode.toDataURL(qrValue, {
       width: 256,
       margin: 2,
       color: {
@@ -43,11 +66,22 @@ export default function QRScanner() {
 
   const handleQRValue = useCallback(
     async (value: string) => {
-      const normalized = value.trim().toUpperCase();
-      if (normalized !== "ON" && normalized !== "OFF") return;
+      // Support both plain "ON"/"OFF" and URL with ?state= param
+      let targetState: LightState | null = null;
+
+      const parsed = parseStateFromUrl(value.trim());
+      if (parsed) {
+        targetState = parsed;
+      } else {
+        const normalized = value.trim().toUpperCase();
+        if (normalized === "ON") targetState = "on";
+        else if (normalized === "OFF") targetState = "off";
+      }
+
+      if (!targetState) return;
       if (cooldownRef.current) return;
 
-      const wantOn = normalized === "ON";
+      const wantOn = targetState === "on";
 
       setLightState((prev) => {
         if ((prev === "on") === wantOn) return prev;
