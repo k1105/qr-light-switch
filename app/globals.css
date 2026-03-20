@@ -53,3 +53,23 @@ body {
   text-align: center;
   margin-top: 40px;
 }
+
+#performance {
+  position: relative;
+  width: 100vw;
+  height: 100dvh;
+}
+
+#performance video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+#network-overlay {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
