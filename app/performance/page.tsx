@@ -2,11 +2,12 @@
 
 import { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
-import { collection, onSnapshot } from "firebase/firestore";
+import { collection, onSnapshot, Timestamp } from "firebase/firestore";
 import { db } from "../lib/firebase";
 
 interface Node extends d3.SimulationNodeDatum {
   id: string;
+  label: string;
 }
 
 interface Link extends d3.SimulationLinkDatum<Node> {
@@ -93,10 +94,28 @@ export default function PerformancePage() {
     });
 
     const unsubscribe = onSnapshot(collection(db, "nodes"), (snapshot) => {
-      const nodeMap = new Map<string, { parentId: string | null }>();
+      const entries: { id: string; parentId: string | null; createdAt: Timestamp | null }[] = [];
       snapshot.forEach((doc) => {
-        nodeMap.set(doc.id, doc.data() as { parentId: string | null });
+        const data = doc.data() as { parentId: string | null; createdAt?: Timestamp };
+        entries.push({ id: doc.id, parentId: data.parentId, createdAt: data.createdAt ?? null });
       });
+
+      // Sort by createdAt to assign stable hex labels
+      entries.sort((a, b) => {
+        if (!a.createdAt) return -1;
+        if (!b.createdAt) return 1;
+        return a.createdAt.toMillis() - b.createdAt.toMillis();
+      });
+
+      const labelMap = new Map<string, string>();
+      entries.forEach((e, i) => {
+        labelMap.set(e.id, i.toString(16).toUpperCase().padStart(2, "0"));
+      });
+
+      const nodeMap = new Map<string, { parentId: string | null }>();
+      for (const e of entries) {
+        nodeMap.set(e.id, { parentId: e.parentId });
+      }
 
       // Build nodes - reuse existing positions
       const oldPositions = new Map<string, { x: number; y: number }>();
@@ -107,9 +126,9 @@ export default function PerformancePage() {
       }
 
       const nodes: Node[] = [];
-      for (const id of nodeMap.keys()) {
-        const old = oldPositions.get(id);
-        nodes.push(old ? { id, x: old.x, y: old.y } : { id });
+      for (const e of entries) {
+        const old = oldPositions.get(e.id);
+        nodes.push(old ? { id: e.id, label: labelMap.get(e.id)!, x: old.x, y: old.y } : { id: e.id, label: labelMap.get(e.id)! });
       }
 
       // Build links from parent relationships
@@ -153,7 +172,7 @@ export default function PerformancePage() {
       label
         .enter()
         .append("text")
-        .text((d) => d.id.slice(0, 4))
+        .text((d) => d.label)
         .attr("fill", "#fff")
         .attr("font-size", 14)
         .attr("font-weight", "bold")
