@@ -8,28 +8,47 @@ body {
   font-family: Arial, Helvetica, sans-serif;
   background: #111;
   color: #fff;
+  overflow: hidden;
 }
 
 #app {
   display: flex;
-  justify-content: center;
-  align-items: center;
+  flex-direction: column;
   height: 100dvh;
 }
 
 #qr-display {
-  text-align: center;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  overflow: hidden;
 }
 
 #state-label {
   font-size: 24px;
   font-weight: bold;
-  margin-bottom: 16px;
+  margin-bottom: 8px;
 }
 
 #qr-image {
-  width: 256px;
-  height: 256px;
+  width: 100%;
+  height: auto;
+  max-height: calc(50dvh - 40px);
+  object-fit: contain;
+}
+
+#camera-display {
+  flex: 1;
+  overflow: hidden;
+  background: #000;
+}
+
+#camera-display video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
 }
 
 #error {

@@ -66,18 +66,7 @@ export default function QRScanner() {
 
   const handleQRValue = useCallback(
     async (value: string) => {
-      // Support both plain "ON"/"OFF" and URL with ?state= param
-      let targetState: LightState | null = null;
-
-      const parsed = parseStateFromUrl(value.trim());
-      if (parsed) {
-        targetState = parsed;
-      } else {
-        const normalized = value.trim().toUpperCase();
-        if (normalized === "ON") targetState = "on";
-        else if (normalized === "OFF") targetState = "off";
-      }
-
+      const targetState = parseStateFromUrl(value.trim());
       if (!targetState) return;
       if (cooldownRef.current) return;
 
@@ -187,8 +176,10 @@ export default function QRScanner() {
         )}
       </div>
 
-      {/* Hidden elements for camera scanning */}
-      <video ref={videoRef} autoPlay playsInline muted style={{ display: "none" }} />
+      <div id="camera-display">
+        <video ref={videoRef} autoPlay playsInline muted />
+      </div>
+
       <canvas ref={canvasRef} style={{ display: "none" }} />
     </div>
   );
