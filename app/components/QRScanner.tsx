@@ -163,22 +163,20 @@ export default function QRScanner() {
 
   return (
     <div id="app">
-      <div id="qr-display">
-        {error ? (
-          <p id="error">{error}</p>
-        ) : (
-          <>
-            <p id="state-label">{lightState.toUpperCase()}</p>
-            {qrDataUrl && (
-              <img id="qr-image" src={qrDataUrl} alt={`QR: ${lightState}`} />
-            )}
-          </>
-        )}
-      </div>
+      {error ? (
+        <p id="error">{error}</p>
+      ) : (
+        <>
+          {qrDataUrl && (
+            <img id="qr-image" src={qrDataUrl} alt={`QR: ${lightState}`} />
+          )}
 
-      <div id="camera-display">
-        <video ref={videoRef} autoPlay playsInline muted />
-      </div>
+          <div id="camera-display">
+            <video ref={videoRef} autoPlay playsInline muted />
+            <p id="state-label">{lightState.toUpperCase()}</p>
+          </div>
+        </>
+      )}
 
       <canvas ref={canvasRef} style={{ display: "none" }} />
     </div>
