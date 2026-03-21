@@ -10,6 +10,7 @@ interface Node extends d3.SimulationNodeDatum {
   id: string;
   label: string;
   state: "on" | "off";
+  isGoal?: boolean;
 }
 
 interface Link extends d3.SimulationLinkDatum<Node> {
@@ -88,10 +89,10 @@ export default function PerformancePage() {
     });
 
     const unsubscribe = onSnapshot(collection(db, "nodes"), (snapshot) => {
-      const entries: { id: string; parentId: string | null; state: "on" | "off"; createdAt: Timestamp | null }[] = [];
+      const entries: { id: string; parentId: string | null; state: "on" | "off"; createdAt: Timestamp | null; isGoal?: boolean }[] = [];
       snapshot.forEach((doc) => {
-        const data = doc.data() as { parentId: string | null; state?: "on" | "off"; createdAt?: Timestamp };
-        entries.push({ id: doc.id, parentId: data.parentId, state: data.state ?? "off", createdAt: data.createdAt ?? null });
+        const data = doc.data() as { parentId: string | null; state?: "on" | "off"; createdAt?: Timestamp; isGoal?: boolean };
+        entries.push({ id: doc.id, parentId: data.parentId, state: data.state ?? "off", createdAt: data.createdAt ?? null, isGoal: data.isGoal });
       });
 
       // Sort by createdAt to assign stable hex labels
@@ -122,9 +123,10 @@ export default function PerformancePage() {
       const nodes: Node[] = [];
       for (const e of entries) {
         const old = oldPositions.get(e.id);
+        const label = e.isGoal ? "GOAL" : labelMap.get(e.id)!;
         nodes.push(old
-          ? { id: e.id, label: labelMap.get(e.id)!, state: e.state, x: old.x, y: old.y }
-          : { id: e.id, label: labelMap.get(e.id)!, state: e.state });
+          ? { id: e.id, label, state: e.state, isGoal: e.isGoal, x: old.x, y: old.y }
+          : { id: e.id, label, state: e.state, isGoal: e.isGoal });
       }
 
       // Build links from parent relationships
@@ -156,11 +158,14 @@ export default function PerformancePage() {
       node
         .enter()
         .append("circle")
-        .attr("r", 20)
         .attr("stroke", "#fff")
         .attr("stroke-width", 2)
         .merge(node)
-        .attr("fill", (d) => d.state === "on" ? "rgba(255,220,50,0.8)" : "rgba(255,255,255,0.15)");
+        .attr("r", (d) => d.isGoal ? 30 : 20)
+        .attr("fill", (d) => {
+          if (d.isGoal) return d.state === "on" ? "rgba(100,255,100,0.9)" : "rgba(100,255,100,0.3)";
+          return d.state === "on" ? "rgba(255,220,50,0.8)" : "rgba(255,255,255,0.15)";
+        });
 
       const label = labelGroup
         .selectAll<SVGTextElement, Node>("text")

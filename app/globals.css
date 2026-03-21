@@ -54,6 +54,23 @@ body {
   margin-top: 40px;
 }
 
+#connection-status {
+  text-align: center;
+  padding: 10px 16px;
+  font-size: 14px;
+  font-weight: bold;
+}
+
+#connection-status.connected {
+  background: #1a3a1a;
+  color: #4ade80;
+}
+
+#connection-status.lost {
+  background: #3a1a1a;
+  color: #f87171;
+}
+
 #performance {
   position: relative;
   width: 100vw;

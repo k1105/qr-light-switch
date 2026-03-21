@@ -43,6 +43,10 @@ export default function QRScanner() {
   });
   const [error, setError] = useState<string | null>(null);
   const [qrDataUrl, setQrDataUrl] = useState<string | null>(null);
+  const [parentConnected, setParentConnected] = useState(false);
+  const [hasParent, setHasParent] = useState(false);
+  const lastQrSeenRef = useRef<number>(0);
+  const connectionTimerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const myId = useRef("");
   useEffect(() => {
@@ -54,9 +58,22 @@ export default function QRScanner() {
       registerNode(myId.current, parentId);
       if (parentId) {
         registerNode(parentId, null);
+        setHasParent(true);
       }
     }
   }, []);
+
+  // Monitor connection status: check if parent QR is still being scanned
+  useEffect(() => {
+    if (!hasParent) return;
+    connectionTimerRef.current = setInterval(() => {
+      const elapsed = Date.now() - lastQrSeenRef.current;
+      setParentConnected(lastQrSeenRef.current > 0 && elapsed < 1500);
+    }, 500);
+    return () => {
+      if (connectionTimerRef.current) clearInterval(connectionTimerRef.current);
+    };
+  }, [hasParent]);
 
   // Generate QR code as URL with state param + parent
   useEffect(() => {
@@ -91,6 +108,11 @@ export default function QRScanner() {
       if (cooldownRef.current) return;
 
       const { state: targetState, parentId } = parsed;
+
+      // Track that we're seeing a valid QR from our parent
+      if (parentId) {
+        lastQrSeenRef.current = Date.now();
+      }
 
       // Register relay: scanned QR means parentId created this QR
       if (myId.current && parentId) {
@@ -208,6 +230,16 @@ export default function QRScanner() {
             <video ref={videoRef} autoPlay playsInline muted />
             <p id="state-label">{lightState.toUpperCase()}</p>
           </div>
+
+          {hasParent && (
+            <div id="connection-status" className={parentConnected ? "connected" : "lost"}>
+              {parentConnected ? (
+                <span>Connecting</span>
+              ) : (
+                <span>Connection lost — 前の人のQRを読み取り続けてください</span>
+              )}
+            </div>
+          )}
         </>
       )}
 

@@ -23,7 +23,7 @@ export default function GoalPage() {
 
   useEffect(() => {
     myId.current = getUserId();
-    registerNode(myId.current, null);
+    registerNode(myId.current, null, { isGoal: true });
   }, []);
 
   // Notify performance page via Firestore when goal is reached

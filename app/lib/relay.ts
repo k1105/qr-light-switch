@@ -3,7 +3,8 @@ import { db } from "./firebase";
 
 export async function registerNode(
   userId: string,
-  parentId: string | null
+  parentId: string | null,
+  options?: { isGoal?: boolean }
 ): Promise<void> {
   const ref = doc(db, "nodes", userId);
   const snap = await getDoc(ref);
@@ -13,6 +14,7 @@ export async function registerNode(
     parentId,
     state: "off",
     createdAt: serverTimestamp(),
+    ...(options?.isGoal && { isGoal: true }),
   });
 }
 

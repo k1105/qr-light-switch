@@ -82,6 +82,7 @@ export function watchCameraStream(
   const roomRef = doc(db, "rooms", ROOM_ID);
   let currentPc: RTCPeerConnection | null = null;
   let lastCreatedAt: number | null = null;
+  let candidatesUnsub: (() => void) | null = null;
 
   const unsubscribe = onSnapshot(roomRef, async (snap) => {
     const data = snap.data();
@@ -91,7 +92,11 @@ export function watchCameraStream(
     if (lastCreatedAt !== null && data.createdAt === lastCreatedAt) return;
     lastCreatedAt = data.createdAt;
 
-    // Clean up previous connection
+    // Clean up previous connection and listeners
+    if (candidatesUnsub) {
+      candidatesUnsub();
+      candidatesUnsub = null;
+    }
     if (currentPc) {
       currentPc.close();
       currentPc = null;
@@ -132,9 +137,9 @@ export function watchCameraStream(
         { merge: true }
       );
 
-      onSnapshot(callerCandidatesRef, (snap) => {
+      candidatesUnsub = onSnapshot(callerCandidatesRef, (snap) => {
         snap.docChanges().forEach((change) => {
-          if (change.type === "added") {
+          if (change.type === "added" && pc.signalingState !== "closed") {
             pc.addIceCandidate(new RTCIceCandidate(change.doc.data()));
           }
         });
@@ -146,6 +151,7 @@ export function watchCameraStream(
 
   return () => {
     unsubscribe();
+    if (candidatesUnsub) candidatesUnsub();
     if (currentPc) currentPc.close();
   };
 }
