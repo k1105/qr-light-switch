@@ -5,7 +5,8 @@ service cloud.firestore {
     match /nodes/{nodeId} {
       allow read: if true;
       allow create: if true;
-      allow update, delete: if false;
+      allow update: if request.resource.data.diff(resource.data).affectedKeys().hasOnly(["state"]);
+      allow delete: if false;
     }
   }
 }

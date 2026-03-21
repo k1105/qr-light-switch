@@ -1,4 +1,4 @@
-import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDoc, setDoc, updateDoc, serverTimestamp } from "firebase/firestore";
 import { db } from "./firebase";
 
 export async function registerNode(
@@ -11,6 +11,15 @@ export async function registerNode(
 
   await setDoc(ref, {
     parentId,
+    state: "off",
     createdAt: serverTimestamp(),
   });
+}
+
+export async function updateState(
+  userId: string,
+  state: "on" | "off"
+): Promise<void> {
+  const ref = doc(db, "nodes", userId);
+  await updateDoc(ref, { state });
 }

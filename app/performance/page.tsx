@@ -2,12 +2,14 @@
 
 import { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
-import { collection, onSnapshot, Timestamp } from "firebase/firestore";
+import { collection, doc, onSnapshot, Timestamp } from "firebase/firestore";
 import { db } from "../lib/firebase";
+import { receiveCameraStream } from "../lib/webrtc";
 
 interface Node extends d3.SimulationNodeDatum {
   id: string;
   label: string;
+  state: "on" | "off";
 }
 
 interface Link extends d3.SimulationLinkDatum<Node> {
@@ -19,14 +21,31 @@ export default function PerformancePage() {
   const videoRef = useRef<HTMLVideoElement>(null);
   const svgRef = useRef<SVGSVGElement>(null);
   const [error, setError] = useState<string | null>(null);
+  const [goalCompleted, setGoalCompleted] = useState(false);
   const nodesRef = useRef<Node[]>([]);
   const linksRef = useRef<Link[]>([]);
 
-  // Camera setup
+  // Camera setup: try WebRTC remote stream first, fall back to local camera
   useEffect(() => {
     let stream: MediaStream | null = null;
+    let cancelled = false;
 
     const init = async () => {
+      const video = videoRef.current;
+      if (!video) return;
+
+      // Try receiving remote camera stream via WebRTC
+      try {
+        const remoteStream = await receiveCameraStream();
+        if (cancelled) return;
+        video.srcObject = remoteStream;
+        await video.play();
+        return;
+      } catch {
+        // WebRTC failed, fall back to local camera
+      }
+
+      // Fallback: local camera
       try {
         stream = await navigator.mediaDevices.getUserMedia({
           video: {
@@ -36,10 +55,7 @@ export default function PerformancePage() {
           },
           audio: false,
         });
-
-        const video = videoRef.current;
-        if (!video) return;
-
+        if (cancelled) return;
         video.srcObject = stream;
         await video.play();
       } catch {
@@ -50,10 +66,21 @@ export default function PerformancePage() {
     init();
 
     return () => {
+      cancelled = true;
       if (stream) {
         stream.getTracks().forEach((t) => t.stop());
       }
     };
+  }, []);
+
+  // Goal completion listener
+  useEffect(() => {
+    const unsubscribe = onSnapshot(doc(db, "meta", "goal"), (snap) => {
+      if (snap.exists() && snap.data()?.completed) {
+        setGoalCompleted(true);
+      }
+    });
+    return () => unsubscribe();
   }, []);
 
   // Firestore subscription + D3 visualization
@@ -94,10 +121,10 @@ export default function PerformancePage() {
     });
 
     const unsubscribe = onSnapshot(collection(db, "nodes"), (snapshot) => {
-      const entries: { id: string; parentId: string | null; createdAt: Timestamp | null }[] = [];
+      const entries: { id: string; parentId: string | null; state: "on" | "off"; createdAt: Timestamp | null }[] = [];
       snapshot.forEach((doc) => {
-        const data = doc.data() as { parentId: string | null; createdAt?: Timestamp };
-        entries.push({ id: doc.id, parentId: data.parentId, createdAt: data.createdAt ?? null });
+        const data = doc.data() as { parentId: string | null; state?: "on" | "off"; createdAt?: Timestamp };
+        entries.push({ id: doc.id, parentId: data.parentId, state: data.state ?? "off", createdAt: data.createdAt ?? null });
       });
 
       // Sort by createdAt to assign stable hex labels
@@ -128,7 +155,9 @@ export default function PerformancePage() {
       const nodes: Node[] = [];
       for (const e of entries) {
         const old = oldPositions.get(e.id);
-        nodes.push(old ? { id: e.id, label: labelMap.get(e.id)!, x: old.x, y: old.y } : { id: e.id, label: labelMap.get(e.id)! });
+        nodes.push(old
+          ? { id: e.id, label: labelMap.get(e.id)!, state: e.state, x: old.x, y: old.y }
+          : { id: e.id, label: labelMap.get(e.id)!, state: e.state });
       }
 
       // Build links from parent relationships
@@ -161,9 +190,10 @@ export default function PerformancePage() {
         .enter()
         .append("circle")
         .attr("r", 20)
-        .attr("fill", "rgba(255,255,255,0.15)")
         .attr("stroke", "#fff")
-        .attr("stroke-width", 2);
+        .attr("stroke-width", 2)
+        .merge(node)
+        .attr("fill", (d) => d.state === "on" ? "rgba(255,220,50,0.8)" : "rgba(255,255,255,0.15)");
 
       const label = labelGroup
         .selectAll<SVGTextElement, Node>("text")
@@ -202,6 +232,23 @@ export default function PerformancePage() {
         <>
           <video ref={videoRef} autoPlay playsInline muted />
           <svg ref={svgRef} id="network-overlay" />
+          {goalCompleted && (
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                zIndex: 10,
+                fontFamily: "monospace",
+              }}
+            >
+              <h1 style={{ fontSize: "min(12vw, 120px)", color: "#fff", textShadow: "0 0 40px rgba(255,255,255,0.6)" }}>
+                Hello, World!
+              </h1>
+            </div>
+          )}
         </>
       )}
     </div>

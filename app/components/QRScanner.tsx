@@ -4,7 +4,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import jsQR from "jsqr";
 import QRCode from "qrcode";
 import { getUserId } from "../lib/userId";
-import { registerNode } from "../lib/relay";
+import { registerNode, updateState } from "../lib/relay";
 
 type LightState = "on" | "off";
 
@@ -110,7 +110,12 @@ export default function QRScanner() {
 
         applyTorch(wantOn);
 
-        return wantOn ? "on" : "off";
+        const next = wantOn ? "on" : "off";
+        if (myId.current) {
+          updateState(myId.current, next);
+        }
+
+        return next;
       });
     },
     [applyTorch]
