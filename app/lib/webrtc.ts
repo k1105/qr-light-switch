@@ -72,42 +72,66 @@ export async function startCameraStream(
 }
 
 /**
- * Viewer side: receive WebRTC stream from camera
+ * Viewer side: watch for camera streams and reconnect automatically
+ * when a new camera person starts streaming.
+ * Returns an unsubscribe function.
  */
-export async function receiveCameraStream(): Promise<MediaStream> {
+export function watchCameraStream(
+  onStream: (stream: MediaStream) => void
+): () => void {
   const roomRef = doc(db, "rooms", ROOM_ID);
-  const callerCandidatesRef = collection(roomRef, "callerCandidates");
-  const calleeCandidatesRef = collection(roomRef, "calleeCandidates");
+  let currentPc: RTCPeerConnection | null = null;
+  let lastCreatedAt: number | null = null;
 
-  const pc = new RTCPeerConnection(servers);
-  const remoteStream = new MediaStream();
+  const unsubscribe = onSnapshot(roomRef, async (snap) => {
+    const data = snap.data();
+    if (!data?.offer) return;
 
-  pc.ontrack = (event) => {
-    event.streams[0].getTracks().forEach((track) => {
-      remoteStream.addTrack(track);
-    });
-  };
+    // Skip if we already handled this offer
+    if (lastCreatedAt !== null && data.createdAt === lastCreatedAt) return;
+    lastCreatedAt = data.createdAt;
 
-  // ICE candidates
-  pc.onicecandidate = (event) => {
-    if (event.candidate) {
-      addDoc(calleeCandidatesRef, event.candidate.toJSON());
+    // Clean up previous connection
+    if (currentPc) {
+      currentPc.close();
+      currentPc = null;
     }
-  };
 
-  return new Promise((resolve, reject) => {
-    // Wait for offer
-    const unsub = onSnapshot(roomRef, async (snap) => {
-      const data = snap.data();
-      if (!data?.offer) return;
+    const callerCandidatesRef = collection(roomRef, "callerCandidates");
+    const calleeCandidatesRef = collection(roomRef, "calleeCandidates");
 
+    // Clean old callee candidates before reconnecting
+    const oldSnap = await getDocs(calleeCandidatesRef);
+    for (const d of oldSnap.docs) await deleteDoc(d.ref);
+
+    const pc = new RTCPeerConnection(servers);
+    currentPc = pc;
+    const remoteStream = new MediaStream();
+
+    pc.ontrack = (event) => {
+      event.streams[0].getTracks().forEach((track) => {
+        remoteStream.addTrack(track);
+      });
+      onStream(remoteStream);
+    };
+
+    pc.onicecandidate = (event) => {
+      if (event.candidate) {
+        addDoc(calleeCandidatesRef, event.candidate.toJSON());
+      }
+    };
+
+    try {
       await pc.setRemoteDescription(new RTCSessionDescription(data.offer));
       const answer = await pc.createAnswer();
       await pc.setLocalDescription(answer);
 
-      await setDoc(roomRef, { ...data, answer: { type: answer.type, sdp: answer.sdp } }, { merge: true });
+      await setDoc(
+        roomRef,
+        { ...data, answer: { type: answer.type, sdp: answer.sdp } },
+        { merge: true }
+      );
 
-      // Listen for caller ICE candidates
       onSnapshot(callerCandidatesRef, (snap) => {
         snap.docChanges().forEach((change) => {
           if (change.type === "added") {
@@ -115,25 +139,13 @@ export async function receiveCameraStream(): Promise<MediaStream> {
           }
         });
       });
-
-      // Resolve when we get tracks
-      pc.ontrack = (event) => {
-        event.streams[0].getTracks().forEach((track) => {
-          remoteStream.addTrack(track);
-        });
-        resolve(remoteStream);
-      };
-
-      // If tracks already added
-      if (remoteStream.getTracks().length > 0) {
-        resolve(remoteStream);
-      }
-
-      // Timeout fallback
-      setTimeout(() => {
-        if (remoteStream.getTracks().length > 0) resolve(remoteStream);
-        else reject(new Error("WebRTC connection timeout"));
-      }, 15000);
-    });
+    } catch (e) {
+      console.error("WebRTC connection error:", e);
+    }
   });
+
+  return () => {
+    unsubscribe();
+    if (currentPc) currentPc.close();
+  };
 }

@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import * as d3 from "d3";
 import { collection, doc, onSnapshot, Timestamp } from "firebase/firestore";
 import { db } from "../lib/firebase";
-import { receiveCameraStream } from "../lib/webrtc";
+import { watchCameraStream } from "../lib/webrtc";
 
 interface Node extends d3.SimulationNodeDatum {
   id: string;
@@ -25,51 +25,18 @@ export default function PerformancePage() {
   const nodesRef = useRef<Node[]>([]);
   const linksRef = useRef<Link[]>([]);
 
-  // Camera setup: try WebRTC remote stream first, fall back to local camera
+  // Camera setup: watch for WebRTC remote stream, auto-reconnect on camera change
   useEffect(() => {
-    let stream: MediaStream | null = null;
-    let cancelled = false;
+    const video = videoRef.current;
+    if (!video) return;
 
-    const init = async () => {
-      const video = videoRef.current;
-      if (!video) return;
-
-      // Try receiving remote camera stream via WebRTC
-      try {
-        const remoteStream = await receiveCameraStream();
-        if (cancelled) return;
-        video.srcObject = remoteStream;
-        await video.play();
-        return;
-      } catch {
-        // WebRTC failed, fall back to local camera
-      }
-
-      // Fallback: local camera
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: {
-            facingMode: { ideal: "user" },
-            width: { ideal: 1920 },
-            height: { ideal: 1080 },
-          },
-          audio: false,
-        });
-        if (cancelled) return;
-        video.srcObject = stream;
-        await video.play();
-      } catch {
-        setError("カメラへのアクセスが拒否されました。");
-      }
-    };
-
-    init();
+    const unsubscribe = watchCameraStream((remoteStream) => {
+      video.srcObject = remoteStream;
+      video.play().catch(() => {});
+    });
 
     return () => {
-      cancelled = true;
-      if (stream) {
-        stream.getTracks().forEach((t) => t.stop());
-      }
+      unsubscribe();
     };
   }, []);
 
