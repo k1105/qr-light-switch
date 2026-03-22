@@ -16,7 +16,7 @@ export default function MasterPage() {
 
   useEffect(() => {
     myId.current = getUserId();
-    registerNode(myId.current, null);
+    registerNode(myId.current, null, { isMaster: true });
   }, []);
 
   useEffect(() => {
@@ -87,7 +87,7 @@ export default function MasterPage() {
           color: lightState === "on" ? "#999" : "#666",
         }}
       >
-        tap to toggle
+        タップで切替 / tap to toggle
       </p>
     </div>
   );

@@ -54,12 +54,10 @@ export default function QRScanner() {
     // Register self as root node if arrived without parent
     const params = new URLSearchParams(window.location.search);
     const parentId = params.get("parent");
-    if (myId.current) {
+    if (myId.current && parentId) {
       registerNode(myId.current, parentId);
-      if (parentId) {
-        registerNode(parentId, null);
-        setHasParent(true);
-      }
+      registerNode(parentId, null);
+      setHasParent(true);
     }
   }, []);
 
@@ -203,7 +201,7 @@ export default function QRScanner() {
         await video.play();
         startScanning(video);
       } catch {
-        setError("カメラへのアクセスが拒否されました。");
+        setError("カメラへのアクセスが拒否されました / Camera access denied");
       }
     };
 
@@ -235,9 +233,9 @@ export default function QRScanner() {
           {hasParent && (
             <div id="connection-status" className={parentConnected ? "connected" : "lost"}>
               {parentConnected ? (
-                <span>Connecting</span>
+                <span>接続中 / Connecting</span>
               ) : (
-                <span>Connection lost — 前の人のQRを読み取り続けてください</span>
+                <span>接続切れ / Connection lost — 前の人のQRを読み取り続けてください / Keep scanning the previous person&apos;s QR code</span>
               )}
             </div>
           )}

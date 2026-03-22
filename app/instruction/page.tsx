@@ -1,6 +1,10 @@
 "use client";
 
+import { useRouter } from "next/navigation";
+
 export default function InstructionPage() {
+  const router = useRouter();
+
   return (
     <div
       style={{
@@ -95,6 +99,17 @@ export default function InstructionPage() {
           Waiting for instructions...
         </p>
       </section>
+
+      <div
+        onDoubleClick={() => router.push("/performance")}
+        style={{
+          position: "fixed",
+          bottom: 0,
+          right: 0,
+          width: 80,
+          height: 80,
+        }}
+      />
     </div>
   );
 }

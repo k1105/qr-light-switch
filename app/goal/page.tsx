@@ -26,18 +26,19 @@ export default function GoalPage() {
     registerNode(myId.current, null, { isGoal: true });
   }, []);
 
-  // Notify performance page via Firestore when goal is reached
+  // Sync hitCount and completion to Firestore
   useEffect(() => {
+    const goalRef = doc(db, "meta", "goal");
+    const data: Record<string, unknown> = { hitCount };
     if (hitCount >= GOAL_COUNT && !completed) {
       setCompleted(true);
-      const goalRef = doc(db, "meta", "goal");
-      updateDoc(goalRef, { completed: true }).catch(() => {
-        // doc might not exist, create it
-        import("firebase/firestore").then(({ setDoc }) => {
-          setDoc(goalRef, { completed: true });
-        });
-      });
+      data.completed = true;
     }
+    updateDoc(goalRef, data).catch(() => {
+      import("firebase/firestore").then(({ setDoc }) => {
+        setDoc(goalRef, { hitCount, ...(data.completed ? { completed: true } : {}) });
+      });
+    });
   }, [hitCount, completed]);
 
   const handleQRValue = useCallback((value: string) => {
@@ -142,7 +143,7 @@ export default function GoalPage() {
       }}
     >
       {completed ? (
-        <p style={{ fontSize: 14, color: "#0f0" }}>GOAL REACHED</p>
+        <p style={{ fontSize: 14, color: "#0f0" }}>ゴール達成 / GOAL REACHED</p>
       ) : (
         <>
           <video
@@ -164,7 +165,7 @@ export default function GoalPage() {
               {remaining}
             </p>
             <p style={{ fontSize: 14, color: lightState === "on" ? "#999" : "#666", marginTop: 8 }}>
-              remaining
+              のこり / remaining
             </p>
           </div>
         </>

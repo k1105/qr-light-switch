@@ -11,6 +11,7 @@ interface Node extends d3.SimulationNodeDatum {
   label: string;
   state: "on" | "off";
   isGoal?: boolean;
+  isMaster?: boolean;
 }
 
 interface Link extends d3.SimulationLinkDatum<Node> {
@@ -23,6 +24,8 @@ export default function PerformancePage() {
   const svgRef = useRef<SVGSVGElement>(null);
   const [error, setError] = useState<string | null>(null);
   const [goalCompleted, setGoalCompleted] = useState(false);
+  const [goalHitCount, setGoalHitCount] = useState(0);
+  const [goalConnected, setGoalConnected] = useState(false);
   const nodesRef = useRef<Node[]>([]);
   const linksRef = useRef<Link[]>([]);
 
@@ -41,11 +44,13 @@ export default function PerformancePage() {
     };
   }, []);
 
-  // Goal completion listener
+  // Goal completion & hitCount listener
   useEffect(() => {
     const unsubscribe = onSnapshot(doc(db, "meta", "goal"), (snap) => {
-      if (snap.exists() && snap.data()?.completed) {
-        setGoalCompleted(true);
+      if (snap.exists()) {
+        const data = snap.data();
+        if (data?.completed) setGoalCompleted(true);
+        if (typeof data?.hitCount === "number") setGoalHitCount(data.hitCount);
       }
     });
     return () => unsubscribe();
@@ -89,10 +94,10 @@ export default function PerformancePage() {
     });
 
     const unsubscribe = onSnapshot(collection(db, "nodes"), (snapshot) => {
-      const entries: { id: string; parentId: string | null; state: "on" | "off"; createdAt: Timestamp | null; isGoal?: boolean }[] = [];
+      const entries: { id: string; parentId: string | null; state: "on" | "off"; createdAt: Timestamp | null; isGoal?: boolean; isMaster?: boolean }[] = [];
       snapshot.forEach((doc) => {
-        const data = doc.data() as { parentId: string | null; state?: "on" | "off"; createdAt?: Timestamp; isGoal?: boolean };
-        entries.push({ id: doc.id, parentId: data.parentId, state: data.state ?? "off", createdAt: data.createdAt ?? null, isGoal: data.isGoal });
+        const data = doc.data() as { parentId: string | null; state?: "on" | "off"; createdAt?: Timestamp; isGoal?: boolean; isMaster?: boolean };
+        entries.push({ id: doc.id, parentId: data.parentId, state: data.state ?? "off", createdAt: data.createdAt ?? null, isGoal: data.isGoal, isMaster: data.isMaster });
       });
 
       // Sort by createdAt to assign stable hex labels
@@ -123,10 +128,10 @@ export default function PerformancePage() {
       const nodes: Node[] = [];
       for (const e of entries) {
         const old = oldPositions.get(e.id);
-        const label = e.isGoal ? "GOAL" : labelMap.get(e.id)!;
+        const label = e.isGoal ? "GOAL" : e.isMaster ? "MASTER" : labelMap.get(e.id)!;
         nodes.push(old
-          ? { id: e.id, label, state: e.state, isGoal: e.isGoal, x: old.x, y: old.y }
-          : { id: e.id, label, state: e.state, isGoal: e.isGoal });
+          ? { id: e.id, label, state: e.state, isGoal: e.isGoal, isMaster: e.isMaster, x: old.x, y: old.y }
+          : { id: e.id, label, state: e.state, isGoal: e.isGoal, isMaster: e.isMaster });
       }
 
       // Build links from parent relationships
@@ -139,6 +144,10 @@ export default function PerformancePage() {
 
       nodesRef.current = nodes;
       linksRef.current = links;
+
+      // Check if goal node has a parent (= connected to network)
+      const goalEntry = entries.find((e) => e.isGoal);
+      setGoalConnected(!!(goalEntry && goalEntry.parentId));
 
       // Update D3
       const link = linkGroup
@@ -161,9 +170,10 @@ export default function PerformancePage() {
         .attr("stroke", "#fff")
         .attr("stroke-width", 2)
         .merge(node)
-        .attr("r", (d) => d.isGoal ? 30 : 20)
+        .attr("r", (d) => (d.isGoal || d.isMaster) ? 30 : 20)
         .attr("fill", (d) => {
           if (d.isGoal) return d.state === "on" ? "rgba(100,255,100,0.9)" : "rgba(100,255,100,0.3)";
+          if (d.isMaster) return d.state === "on" ? "rgba(100,150,255,0.9)" : "rgba(100,150,255,0.3)";
           return d.state === "on" ? "rgba(255,220,50,0.8)" : "rgba(255,255,255,0.15)";
         });
 
@@ -177,7 +187,8 @@ export default function PerformancePage() {
         .text((d) => d.label)
         .attr("fill", "#fff")
         .attr("font-size", 14)
-        .attr("font-weight", "bold")
+        .attr("font-family", "'Times New Roman', 'Noto Serif', Georgia, serif")
+        .attr("font-style", "italic")
         .attr("text-anchor", "middle")
         .attr("dominant-baseline", "central");
 
@@ -204,6 +215,23 @@ export default function PerformancePage() {
         <>
           <video ref={videoRef} autoPlay playsInline muted />
           <svg ref={svgRef} id="network-overlay" />
+          {goalConnected && !goalCompleted && goalHitCount > 0 && (
+            <div
+              style={{
+                position: "absolute",
+                inset: 0,
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                zIndex: 10,
+                fontFamily: "'Times New Roman', 'Noto Serif', Georgia, serif",
+              }}
+            >
+              <p style={{ fontSize: "min(20vw, 240px)", color: "#fff", fontStyle: "italic" }}>
+                {3 - goalHitCount}
+              </p>
+            </div>
+          )}
           {goalCompleted && (
             <div
               style={{
@@ -213,10 +241,10 @@ export default function PerformancePage() {
                 alignItems: "center",
                 justifyContent: "center",
                 zIndex: 10,
-                fontFamily: "monospace",
+                fontFamily: "'Times New Roman', 'Noto Serif', Georgia, serif",
               }}
             >
-              <h1 style={{ fontSize: "min(12vw, 120px)", color: "#fff", textShadow: "0 0 40px rgba(255,255,255,0.6)" }}>
+              <h1 style={{ fontSize: "min(20vw, 240px)", color: "#fff", fontStyle: "italic" }}>
                 Hello, World!
               </h1>
             </div>
