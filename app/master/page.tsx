@@ -26,8 +26,8 @@ export default function MasterPage() {
       width: 512,
       margin: 2,
       color: {
-        dark: lightState === "on" ? "#000000" : "#ffffff",
-        light: lightState === "on" ? "#ffffff" : "#000000",
+        dark: "#000000",
+        light: "#ffffff",
       },
     }).then(setQrDataUrl);
   }, [lightState]);

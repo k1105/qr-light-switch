@@ -83,8 +83,8 @@ export default function QRScanner() {
       width: 256,
       margin: 2,
       color: {
-        dark: lightState === "on" ? "#000000" : "#ffffff",
-        light: lightState === "on" ? "#ffffff" : "#000000",
+        dark: "#000000",
+        light: "#ffffff",
       },
     }).then(setQrDataUrl);
   }, [lightState]);
@@ -164,7 +164,7 @@ export default function QRScanner() {
 
           const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
           const code = jsQR(imageData.data, canvas.width, canvas.height, {
-            inversionAttempts: "attemptBoth",
+            inversionAttempts: "dontInvert",
           });
 
           if (code?.data) {

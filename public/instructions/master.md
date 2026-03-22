@@ -1,37 +1,22 @@
-# 指示書
+# 指示書 / Instruction
 
 この指示書を受け取ったら、あなたはその通りに振る舞ってください。
 ※ あなたは好きなときに、この指示書を他の人に渡すことができます。
 
-## あなたの役割: MASTER / マスター
-
-あなたは信号の発信源です。
-以下のQRコードを読み取ってください。画面にQRコードが表示されます。
-画面をタップすると、ON / OFF が切り替わります。
-隣にいる人にあなたのQRコードを見せてください。
-
-正面のスクリーンにネットワークの接続状況が表示されています。
-ノードが会場後方の「GOAL」端末まで繋がったら、ON / OFF の信号を3回送ってください。
-3回届いたら、Hello, World! が出力されます。
-
-<QRコード>
-
----
-
-# Instruction
-
 Follow these instructions when you receive this sheet.
 ※ You may pass this sheet to someone else at any time.
 
-## Your Role: MASTER
+## あなたの役割 / Your Role: MASTER / マスター
 
-You are the signal source.
-Scan the QR code below. A new QR code will appear on your screen.
-Tap the screen to toggle ON / OFF.
-Show your QR code to the person next to you.
+ステージに設置されているiPadを、好きなタイミングでタップしてください。後ろの人のライトをつけたり消すことのできる信号が送れます。
 
-Watch the network on the main screen.
-Once the nodes reach the "GOAL" device at the back, send the ON / OFF signal 3 times.
-When it arrives, Hello, World! will be displayed.
+Tap the iPad on the stage whenever you like. It sends a signal that can turn the lights of the people behind you on and off.
 
-<QR code>
+正面のスクリーンには、ネットワークの接続状況と、カメラマンによる中継映像が表示されています。
+
+The main screen shows the network status and a live camera feed.
+
+会場の後方に、三脚の上に置かれたスマートフォンがあります。あそこがこのネットワークの終着点です。終着点までネットワークが繋がったら、ON / OFF の信号を3回送ってみてください。
+無事、3回信号を送れると、画面中央にスペシャルメッセージが出力されます。
+
+There is a smartphone on a tripod at the back of the venue — that is the endpoint of this network. Once the network reaches it, try sending the ON / OFF signal 3 times. If all 3 signals arrive, a special message will appear on screen.
