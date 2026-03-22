@@ -1,6 +1,6 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import {useRouter} from "next/navigation";
 
 export default function InstructionPage() {
   const router = useRouter();
@@ -73,7 +73,6 @@ export default function InstructionPage() {
             指示書があれば、好きなときにパフォーマンスから離脱したり、別の役割を担うことができます。
           </li>
           <li>周りの人と「シェイクハンド（握手）」をすることがあります。</li>
-          <li>ネットワークを広げてください</li>
         </ul>
         <ul
           style={{
@@ -90,7 +89,6 @@ export default function InstructionPage() {
             a different role at any time.
           </li>
           <li>You may shake hands with people around you.</li>
-          <li>Extend the network!</li>
         </ul>
       </section>
 

@@ -216,7 +216,7 @@ export default function QRScanner() {
   }, [startScanning]);
 
   return (
-    <div id="app">
+    <div id="app" style={{ border: `1rem solid ${lightState === "on" ? "#fff" : "#000"}` }}>
       {error ? (
         <p id="error">{error}</p>
       ) : (
