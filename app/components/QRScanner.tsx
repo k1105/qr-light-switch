@@ -105,14 +105,15 @@ export default function QRScanner() {
     async (value: string) => {
       const parsed = parseStateFromUrl(value.trim());
       if (!parsed) return;
+
+      // Track that we're seeing a valid QR from our parent (before cooldown check)
+      if (parsed.parentId) {
+        lastQrSeenRef.current = Date.now();
+      }
+
       if (cooldownRef.current) return;
 
       const { state: targetState, parentId } = parsed;
-
-      // Track that we're seeing a valid QR from our parent
-      if (parentId) {
-        lastQrSeenRef.current = Date.now();
-      }
 
       // Register relay: scanned QR means parentId created this QR
       if (myId.current && parentId) {
