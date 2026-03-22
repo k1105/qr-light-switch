@@ -40,12 +40,12 @@ body {
 
 #state-label {
   position: absolute;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
-  font-size: 48px;
+  bottom: 0;
+  right: 0;
+  font-size: 18px;
   font-weight: bold;
-  text-shadow: 0 0 10px rgba(0, 0, 0, 0.8);
+  padding: 6px 1rem;
+  border-top-left-radius: 8px;
 }
 
 #error {
@@ -55,19 +55,22 @@ body {
 }
 
 #connection-status {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
   text-align: center;
-  padding: 10px 16px;
+  padding: 12px 20px;
   font-size: 14px;
   font-weight: bold;
+  line-height: 1.8;
 }
 
 #connection-status.connected {
-  background: #1a3a1a;
   color: #4ade80;
 }
 
 #connection-status.lost {
-  background: #3a1a1a;
   color: #f87171;
 }
 

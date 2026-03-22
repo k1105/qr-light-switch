@@ -227,18 +227,17 @@ export default function QRScanner() {
 
           <div id="camera-display">
             <video ref={videoRef} autoPlay playsInline muted />
-            <p id="state-label">{lightState.toUpperCase()}</p>
+            {hasParent && (
+              <div id="connection-status" className={parentConnected ? "connected" : "lost"}>
+                {parentConnected ? (
+                  <span>接続中 / Connecting</span>
+                ) : (
+                  <span>接続切れ / Connection lost<br />前の人のQRを読み取り続けてください<br />Keep scanning the previous person&apos;s QR code</span>
+                )}
+              </div>
+            )}
+            <p id="state-label" style={{ background: lightState === "on" ? "#fff" : "#000", color: lightState === "on" ? "#000" : "#fff" }}>{lightState.toUpperCase()}</p>
           </div>
-
-          {hasParent && (
-            <div id="connection-status" className={parentConnected ? "connected" : "lost"}>
-              {parentConnected ? (
-                <span>接続中 / Connecting</span>
-              ) : (
-                <span>接続切れ / Connection lost — 前の人のQRを読み取り続けてください / Keep scanning the previous person&apos;s QR code</span>
-              )}
-            </div>
-          )}
         </>
       )}
 
