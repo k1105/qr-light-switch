@@ -34,12 +34,12 @@ export default function CameraPage() {
         pc.onconnectionstatechange = () => {
           if (pc?.connectionState === "disconnected" || pc?.connectionState === "failed") {
             setStatus("error");
-            setError("Connection lost. Refresh to reconnect.");
+            setError("接続が切れました。再読み込みしてください / Connection lost. Refresh to reconnect.");
           }
         };
       } catch (e) {
         setStatus("error");
-        setError(e instanceof Error ? e.message : "Camera access denied");
+        setError(e instanceof Error ? e.message : "カメラへのアクセスが拒否されました / Camera access denied");
       }
     };
 
