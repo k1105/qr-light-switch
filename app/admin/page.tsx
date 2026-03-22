@@ -50,7 +50,10 @@ export default function AdminPage() {
       await deleteDoc(roomRef).catch(() => {});
       setStatus((s) => s + ` | rooms: ${subCount + 1} deleted`);
 
-      setStatus((s) => s + " | DONE");
+      // Clear local userId so this browser doesn't re-register old nodes
+      localStorage.removeItem("qr-relay-user-id");
+
+      setStatus((s) => s + " | localStorage cleared | DONE");
     } catch (e) {
       setStatus(`Error: ${e instanceof Error ? e.message : String(e)}`);
     } finally {
