@@ -143,7 +143,7 @@ export default function GoalPage() {
       }}
     >
       {completed ? (
-        <p style={{ fontSize: 14, color: "#0f0" }}>ゴール達成 / GOAL REACHED</p>
+        <p style={{ fontSize: 14, color: "#00f" }}>ゴール達成 / GOAL REACHED</p>
       ) : (
         <>
           <video

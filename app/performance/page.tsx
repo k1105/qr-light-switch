@@ -158,7 +158,7 @@ export default function PerformancePage() {
         .enter()
         .append("line")
         .attr("stroke", "rgba(255,255,255,0.4)")
-        .attr("stroke-width", 2);
+        .attr("stroke-width", 1);
 
       const node = nodeGroup
         .selectAll<SVGCircleElement, Node>("circle")
@@ -168,14 +168,10 @@ export default function PerformancePage() {
         .enter()
         .append("circle")
         .attr("stroke", "#fff")
-        .attr("stroke-width", 2)
+        .attr("stroke-width", 1)
         .merge(node)
         .attr("r", (d) => (d.isGoal || d.isMaster) ? 30 : 20)
-        .attr("fill", (d) => {
-          if (d.isGoal) return d.state === "on" ? "rgba(100,255,100,0.9)" : "rgba(100,255,100,0.3)";
-          if (d.isMaster) return d.state === "on" ? "rgba(100,150,255,0.9)" : "rgba(100,150,255,0.3)";
-          return d.state === "on" ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.15)";
-        });
+        .attr("fill", (d) => d.state === "on" ? "#fff" : "none");
 
       const label = labelGroup
         .selectAll<SVGTextElement, Node>("text")
@@ -185,12 +181,13 @@ export default function PerformancePage() {
         .enter()
         .append("text")
         .text((d) => d.label)
-        .attr("fill", "#fff")
         .attr("font-size", 14)
         .attr("font-family", "'Times New Roman', 'Noto Serif', Georgia, serif")
         .attr("font-style", "italic")
         .attr("text-anchor", "middle")
-        .attr("dominant-baseline", "central");
+        .attr("dominant-baseline", "central")
+        .merge(label)
+        .attr("fill", (d) => d.state === "on" ? "#0000ff" : "#fff");
 
       // Restart simulation with new data
       simulation.nodes(nodes);

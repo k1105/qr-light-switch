@@ -88,7 +88,7 @@ export default function CameraPage() {
           background: "rgba(0,0,0,0.6)",
           borderRadius: 4,
           fontSize: 13,
-          color: status === "streaming" ? "#0f0" : status === "error" ? "#f00" : "#ff0",
+          color: status === "streaming" ? "#99f" : status === "error" ? "#f44" : "#00f",
         }}
       >
         {status === "connecting" && "● CONNECTING..."}

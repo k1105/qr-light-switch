@@ -67,11 +67,11 @@ body {
 }
 
 #connection-status.connected {
-  color: #4ade80;
+  color: #99f;
 }
 
 #connection-status.lost {
-  color: #f87171;
+  color: #f44;
 }
 
 #performance {
