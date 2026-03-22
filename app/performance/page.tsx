@@ -174,7 +174,7 @@ export default function PerformancePage() {
         .attr("fill", (d) => {
           if (d.isGoal) return d.state === "on" ? "rgba(100,255,100,0.9)" : "rgba(100,255,100,0.3)";
           if (d.isMaster) return d.state === "on" ? "rgba(100,150,255,0.9)" : "rgba(100,150,255,0.3)";
-          return d.state === "on" ? "rgba(255,220,50,0.8)" : "rgba(255,255,255,0.15)";
+          return d.state === "on" ? "rgba(255,255,255,0.9)" : "rgba(255,255,255,0.15)";
         });
 
       const label = labelGroup
